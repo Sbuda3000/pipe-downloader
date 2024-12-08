@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from pytube import YouTube
 import yt_dlp
 import os
 import re
