@@ -82,7 +82,7 @@ class HomePage extends StatefulWidget {
       });
 
       // Make a POST request to the Flask backend to download the video
-      final response = await http.post(Uri.parse('http://10.0.2.2:5000/download'),
+      final response = await http.post(Uri.parse(const String.fromEnvironment('FLASK_BACKEND_URL')), 
                                       headers: {"Content-Type": "application/json"},
                                       body: jsonEncode({"url": url})); // Pass the YouTube URL here
       
