@@ -9,7 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.0.0
+  http: ^1.0.0 # For sending http requests
+  path_provider: ^2.1.2 # To handle local storage
+  permission_handler: ^10.2.0 # For requesting storage permission on Android
 
 dev_dependencies:
   flutter_test:
