@@ -12,11 +12,13 @@ CORS(app)
 # Directory where the video will be saved (temporary storage)
 DOWNLOAD_DIRECTORY = "./downloads"
 
+
+
 # Create a folder to store the downloaded videos
-DOWNLOAD_FOLDER = 'C:\\\\Users\\mo5623\\Downloads\\youtube-downloader\\downloads\\'
-print(DOWNLOAD_FOLDER)
-if not os.path.exists(DOWNLOAD_FOLDER):
-    os.makedirs(DOWNLOAD_FOLDER)
+# DOWNLOAD_FOLDER = 'C:\\\\Users\\mo5623\\Downloads\\youtube-downloader\\downloads\\'
+print(DOWNLOAD_DIRECTORY)
+if not os.path.exists(DOWNLOAD_DIRECTORY):
+    os.makedirs(DOWNLOAD_DIRECTORY)
 
 def sanitize_title(title):
     return re.sub(r'[\/:*?"<>|]', '_', title)
@@ -43,7 +45,7 @@ def download_video():
         # Use yt-dlp to download the video
         option ={
             'format': 'bestaudio/best',
-            'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
+            'outtmpl': os.path.join(DOWNLOAD_DIRECTORY, '%(title)s.%(ext)s'),
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -53,7 +55,7 @@ def download_video():
 
         with yt_dlp.YoutubeDL(option) as ydl:
             info = ydl.extract_info(youtube_url, download=True)
-            file_path = os.path.join(DOWNLOAD_FOLDER, f"{sanitize_title(info['title'])}.mp3")
+            file_path = os.path.join(DOWNLOAD_DIRECTORY, f"{sanitize_title(info['title'])}.mp3")
             print(file_path)
 
         return jsonify({
