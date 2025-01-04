@@ -1,9 +1,10 @@
 from flask import Flask, jsonify, request
-from dotenv import load_dotenv
 from flask_cors import CORS
 import yt_dlp
 import os
 import re
+import dropbox
+from decouple import config 
 
 app = Flask(__name__)
 
@@ -12,16 +13,22 @@ CORS(app)
 # Directory where the video will be saved (temporary storage)
 DOWNLOAD_DIRECTORY = "./downloads"
 
-
-
 # Create a folder to store the downloaded videos
-# DOWNLOAD_FOLDER = 'C:\\\\Users\\mo5623\\Downloads\\youtube-downloader\\downloads\\'
-print(DOWNLOAD_DIRECTORY)
 if not os.path.exists(DOWNLOAD_DIRECTORY):
     os.makedirs(DOWNLOAD_DIRECTORY)
 
 def sanitize_title(title):
     return re.sub(r'[\/:*?"<>|]', '_', title)
+
+def upload_to_dropbox(file_path):
+    ACCESS_TOKEN = config('DROPBOX_ACCESS_TOKEN')
+    dbx = dropbox.Dropbox(ACCESS_TOKEN)
+    
+    with open(file_path, 'rb') as f:
+        file_name = os.path.basename(file_path)
+        dbx.files_upload(f.read(), f'/{file_name}', mute=True)
+        shared_link_metadata = dbx.sharing_create_shared_link_with_settings(f'/{file_name}')
+        return shared_link_metadata.url
 
 @app.route('/')
 def home():
@@ -58,8 +65,12 @@ def download_video():
             file_path = os.path.join(DOWNLOAD_DIRECTORY, f"{sanitize_title(info['title'])}.mp3")
             print(file_path)
 
+        # Upload the downloaded file to Dropbox
+        dropbox_url = upload_to_dropbox(file_path)
+
         return jsonify({
-            "file_path": file_path
+            "file_path": file_path,
+            "dropbox_url": dropbox_url
         }), 200
     
     except Exception as e:
