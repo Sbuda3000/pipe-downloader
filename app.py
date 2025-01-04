@@ -20,15 +20,13 @@ if not os.path.exists(DOWNLOAD_DIRECTORY):
 def sanitize_title(title):
     return re.sub(r'[\/:*?"<>|]', '_', title)
 
-def upload_to_dropbox(file_path):
+def upload_to_dropbox(file_name, file_content):
     ACCESS_TOKEN = config('DROPBOX_ACCESS_TOKEN')
     dbx = dropbox.Dropbox(ACCESS_TOKEN)
     
-    with open(file_path, 'rb') as f:
-        file_name = os.path.basename(file_path)
-        dbx.files_upload(f.read(), f'/{file_name}', mute=True)
-        shared_link_metadata = dbx.sharing_create_shared_link_with_settings(f'/{file_name}')
-        return shared_link_metadata.url
+    dbx.files_upload(file_content, f'/{file_name}', mute=True)
+    shared_link_metadata = dbx.sharing_create_shared_link_with_settings(f'/{file_name}')
+    return shared_link_metadata.url
 
 @app.route('/')
 def home():
@@ -52,7 +50,7 @@ def download_video():
         # Use yt-dlp to download the video
         option ={
             'format': 'bestaudio/best',
-            'outtmpl': os.path.join(DOWNLOAD_DIRECTORY, '%(title)s.%(ext)s'),
+            'outtmpl': '%(title)s.%(ext)s',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -62,11 +60,15 @@ def download_video():
 
         with yt_dlp.YoutubeDL(option) as ydl:
             info = ydl.extract_info(youtube_url, download=True)
-            file_path = os.path.join(DOWNLOAD_DIRECTORY, f"{sanitize_title(info['title'])}.mp3")
-            print(file_path)
+            file_name = f"{sanitize_title(info['title'])}.mp3"
+            file_path = f"{sanitize_title(info['title'])}.mp3"
+
+        # Read the downloaded file into memory
+        with open(file_path, 'rb') as f:
+            file_content = f.read()
 
         # Upload the downloaded file to Dropbox
-        dropbox_url = upload_to_dropbox(file_path)
+        dropbox_url = upload_to_dropbox(file_name, file_content)
 
         return jsonify({
             "file_path": file_path,
