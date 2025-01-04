@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import yt_dlp
-import os
 import re
 import dropbox
 from decouple import config 
@@ -9,13 +8,6 @@ from decouple import config
 app = Flask(__name__)
 
 CORS(app)
-
-# Directory where the video will be saved (temporary storage)
-DOWNLOAD_DIRECTORY = "./downloads"
-
-# Create a folder to store the downloaded videos
-if not os.path.exists(DOWNLOAD_DIRECTORY):
-    os.makedirs(DOWNLOAD_DIRECTORY)
 
 def sanitize_title(title):
     return re.sub(r'[\/:*?"<>|]', '_', title)
