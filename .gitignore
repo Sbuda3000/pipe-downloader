@@ -45,3 +45,6 @@ app.*.map.json
 
 pipeenv/
 .env
+
+client_secret.json
+credentials.json

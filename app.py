@@ -1,9 +1,14 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-import yt_dlp
-import re
-import dropbox
 from decouple import config 
+from flask import Flask, jsonify, redirect, request, session
+from flask_cors import CORS
+from google_auth_oauthlib.flow import Flow
+from google.oauth2.credentials import Credentials
+
+import base64
+import dropbox
+import re
+import yt_dlp
+
 
 app = Flask(__name__)
 
@@ -20,13 +25,60 @@ def upload_to_dropbox(file_name, file_content):
     shared_link_metadata = dbx.sharing_create_shared_link_with_settings(f'/{file_name}')
     return shared_link_metadata.url
 
+def write_base64_to_file(base64_string, file_name):
+    with open(file_name, 'wb') as file:
+        file.write(base64.b64decode(base64_string))
+
 @app.route('/')
 def home():
-    return "Hello from Flask!"
+    return "Welcome to PIPE DOWNLOADER API"
+
+@app.route('/authorize')
+def authorize():
+    client_secrets_base64 = config('CLIENT_SECRETS_BASE64')
+    write_base64_to_file(client_secrets_base64, 'client_secrets.json')
+
+    flow = Flow.from_client_secrets_file(
+        'client_secrets.json',
+        scopes=['https://www.googleapis.com/auth/youtube.readonly'],
+        redirect_uri='http://localhost:5000/oauth2callback'
+    )
+
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true'
+    )
+
+    session['state'] = state
+    return redirect(authorization_url)
+
+@app.route('/oauth2callback')
+def oauth2callback():
+    state = session['state']
+    flow = Flow.from_client_secrets_file(
+        'client_secrets.json',
+        scopes=['https://www.googleapis.com/auth/youtube.readonly'],
+        state=state,
+        redirect_uri='http://localhost:5000/oauth2callback'
+    )
+    flow.fetch_token(authorization_response=request.url)
+
+    credentials = flow.credentials
+
+    with open('credentials.json', 'w') as credentials_file:
+        credentials_file.write(credentials.to_json())
+
+    return redirect('/')
 
 @app.route('/download', methods=['POST'])
 def download_video():
     try:
+        client_secrets_base64 = config('CLIENT_SECRETS_BASE64')
+        write_base64_to_file(client_secrets_base64, 'client_secret.json')
+
+        credentials_base64 = config('CREDENTIALS_BASE64')
+        write_base64_to_file(credentials_base64, 'credentials.json')
+    
         # Get the JSON data from the request
         data = request.get_json()
 
@@ -48,6 +100,10 @@ def download_video():
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
+            'oauth2': {
+                'client_secrets': config('CLIENT_SECRETS_PATH'),
+                'credentials': config('CREDENTIALS_PATH'),
+            }
         }
 
         with yt_dlp.YoutubeDL(option) as ydl:
